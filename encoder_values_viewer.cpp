@@ -1,38 +1,38 @@
 #include <Arduino.h>
 
-// --- Pin Definitions based on Wiring Reference Sheet ---
-// Buttons: PA2 = First Button (Forward), PA3 = Second Button (Backward)
+// ============================================================================
+// Encoder Values Viewer for STM32 BlackPill (F401CC)
+// ============================================================================
+// Pin Definitions based on Wiring Reference Sheet:
+// Left Motor Encoder: PA6 (Channel 1 / Phase A), PA7 (Channel 2 / Phase B)
+// Right Motor Encoder: PA0 (Channel 1 / Phase A), PA1 (Channel 2 / Phase B)
+// Reset Button: PA2 (BTN_1) - Resets encoder tick counts to 0
+// Serial Output: USB CDC / Virtual COM Port (115200 baud)
+// ============================================================================
+
 #define BTN_1 PA2 
 #define BTN_2 PA3 
 
-// TB6612FNG Driver Standby Pin
 #define STBY PB12
 
-// Motor Speed PWM Pins
 #define PWMA PA8  // Left Motor PWM
 #define PWMB PA9  // Right Motor PWM
 
-// Left Motor Direction Control Pins
-#define AIN1 PB0
-#define AIN2 PB1
+#define AIN1 PB0  // Left Motor Dir 1
+#define AIN2 PB1  // Left Motor Dir 2
 
-// Right Motor Direction Control Pins
-#define BIN1 PB2
-#define BIN2 PB10
+#define BIN1 PB2  // Right Motor Dir 1
+#define BIN2 PB10 // Right Motor Dir 2
 
-// Quadrature Encoders Pin Definitions (from Wiring Reference Sheet)
-// Left Motor Encoder: PA6 (Channel 1), PA7 (Channel 2)
 #define LEFT_ENC_A PA6
 #define LEFT_ENC_B PA7
 
-// Right Motor Encoder: PA0 (Channel 1), PA1 (Channel 2)
 #define RIGHT_ENC_A PA0
 #define RIGHT_ENC_B PA1
 
-// Speed PWM value (0 to 255)
 const int MOTOR_SPEED = 200;
 
-// Quadrature Encoder Counters (volatile for ISR safe access)
+// Quadrature Encoder Counters
 volatile long leftEncoderTicks = 0;
 volatile long rightEncoderTicks = 0;
 
@@ -63,34 +63,8 @@ void stopMotors() {
   analogWrite(PWMB, 0);
 }
 
-void spinForward() {
-  // Left Motor Forward: AIN1 = HIGH, AIN2 = LOW
-  digitalWrite(AIN1, HIGH);
-  digitalWrite(AIN2, LOW);
-
-  // Right Motor Forward: BIN1 = LOW, BIN2 = HIGH
-  digitalWrite(BIN1, LOW);
-  digitalWrite(BIN2, HIGH);
-
-  analogWrite(PWMA, MOTOR_SPEED);
-  analogWrite(PWMB, MOTOR_SPEED);
-}
-
-void spinBackward() {
-  // Left Motor Backward: AIN1 = LOW, AIN2 = HIGH
-  digitalWrite(AIN1, LOW);
-  digitalWrite(AIN2, HIGH);
-
-  // Right Motor Backward: BIN1 = HIGH, BIN2 = LOW
-  digitalWrite(BIN1, HIGH);
-  digitalWrite(BIN2, LOW);
-
-  analogWrite(PWMA, MOTOR_SPEED);
-  analogWrite(PWMB, MOTOR_SPEED);
-}
-
 void setup() {
-  // Initialize USB Virtual COM Port (Serial)
+  // Initialize USB Virtual COM Port (Serial Monitor)
   Serial.begin(115200);
 
   // Configure button inputs with internal pull-ups
@@ -119,7 +93,7 @@ void setup() {
   // Enable Motor Driver (STBY HIGH)
   digitalWrite(STBY, HIGH);
 
-  // Initial state: stopped
+  // Keep motors stopped for manual wheel rotation testing
   stopMotors();
 }
 
@@ -129,8 +103,7 @@ void loop() {
   static bool lastBtn1State = false;
 
   // Read button states (LOW when pressed)
-  bool btn1Pressed = (digitalRead(BTN_1) == LOW); // PA2 (First button)
-  bool btn2Pressed = (digitalRead(BTN_2) == LOW); // PA3 (Second button)
+  bool btn1Pressed = (digitalRead(BTN_1) == LOW);
 
   // Button 1 (PA2): Reset encoder counts to 0 when pressed
   if (btn1Pressed && !lastBtn1State) {
@@ -142,7 +115,7 @@ void loop() {
   }
   lastBtn1State = btn1Pressed;
 
-  // Motors remain stopped so you can manually turn the wheel for 1 rotation
+  // Motors remain stopped so you can manually turn the wheel for testing
   stopMotors();
 
   // Print Encoder Feedback to Serial Monitor every 100ms
